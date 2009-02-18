@@ -1,10 +1,10 @@
 /*
 
-    System Boot Manager v0.2
+    System Boot Manager v0.3
     (c) Fredrik Ahlberg, 2008 <fredrik@z80.se>
 
     This is a utility to control the iROM boot monitor
-    in the i.MX21 series ARM CPUs.
+    in the i.MX21 series ARM9 CPUs.
     It is using the protocol defined by the Freescale
     Reference Manual, and by using portmon to analyze
     the Freescale HAB Toolkit.
@@ -17,7 +17,8 @@
     Commands:
     sync                  Ping iROM.
     set ADDR SIZE VALUE   Write to a register.
-    download FILE ADDR    Write a binary image to RAM at ADDR.
+    download FILE ADDR    Write a binary image to RAM beginning
+                          at ADDR.
     run [ADDR]            Let the i.MX run the code at ADDR.
                           If ADDR is not specified, the
 			  address of the first byte of the last
@@ -53,9 +54,11 @@
     so I have not tested this code on them, but, "it should work(tm)".
 
 
-    080927: First version.
+    080927: v0.1: First release.
 
-    081102: Added baud rate setting and interactive terminal.
+    081102: v0.2: Added baud rate setting and interactive terminal.
+
+    090218: v0.3: Minor fixes, code clean-up.
 
 */
 
@@ -106,6 +109,7 @@ int set_baud(int fd, unsigned int baud)
   cfsetspeed(&tty,baud);
   tcflush(fd,TCIFLUSH);
   tcsetattr(fd,TCSANOW,&tty);
+  return 0;
 }
 
 int open_port(char *port)
@@ -401,34 +405,12 @@ int imx_run(int fd, unsigned int addr)
     }
 }
 
-/*int listen(int fd)
-{
-  struct termios tty;
-  bzero(&tty, sizeof(tty)); 
-  tty.c_cflag |= B230400|CS8|CLOCAL|CREAD;
-  tty.c_cc[VMIN] = 0;
-  tty.c_cc[VTIME] = 0;
-  tcflush(fd, TCIFLUSH);
-  tcsetattr(fd, TCSANOW, &tty);
-
-  char c;
-
-  while(1)
-    {
-      if(read(fd,&c,1))
-	{
-	  printf("%c",c);
-	  fflush(stdout);
-	}
-    }
-}*/
-
 void term_recv(int status)
 {
   unsigned char buf;
   int len;
 
-  while(len = read(port,&buf,1))
+  while((len = read(port,&buf,1)))
     {
       if(len != 1)
         {
@@ -478,8 +460,8 @@ int main(int argc, char **argv)
 {
   if(argc == 1)
     {
-      printf("\nSystem Boot Manager for i.MX21\n"
-	     "(c) Fredrik Ahlberg, 2008\n\n"
+      printf("\nSystem Boot Manager for i.MX21 v0.3\n"
+	     "(c) 2008-2009, Fredrik Ahlberg <fredrik@z80.se>\n\n"
 	     "Usage: %s [-p PORT] COMMAND [PARAMETERS] [COMMAND [PARAMETERS] ...]\n"
 	     "   set ADDRESS {8|16|32} VALUE\n"
 	     "   download FILE ADDRESS\n"
@@ -658,16 +640,6 @@ int main(int argc, char **argv)
 
       if(!strcmp(argv[i],"run"))
 	{
-	  /*if(!synced)
-	    {
-	      if(imx_sync(port))
-		{
-		  printf("sbm: Unable to sync, quitting\n");
-		  break;
-		}
-	      synced = 1;
-	      }*/
-
 	  unsigned int addr;
 
 	  if(argc < i+2)
@@ -733,3 +705,4 @@ int main(int argc, char **argv)
 
   return 0;
 }
+
